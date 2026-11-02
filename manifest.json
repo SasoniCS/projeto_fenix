@@ -1,0 +1,15 @@
+{
+  "name": "Projeto Fênix · Metas",
+  "short_name": "Fênix",
+  "description": "Acompanhe suas metas de corpo, mente e disciplina.",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEEBE6",
+  "theme_color": "#A8231B",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

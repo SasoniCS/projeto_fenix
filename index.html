@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- lang="pt-BR" avisa ao navegador e a leitores de tela o idioma da página -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+
+  <!-- Faz a página se ajustar à largura do celular, em vez de aparecer "encolhida" -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Projeto Fênix · Metas</title>
+
+  <!-- PWA: o manifesto descreve o app (nome, ícones, cores) para o celular -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Cor da barra superior do navegador/celular quando o app está aberto -->
+  <meta name="theme-color" content="#A8231B">
+
+  <!-- O iPhone ignora parte do manifesto; este ícone é usado ao "Adicionar à Tela de Início" -->
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Fonte do Google Fonts (opcional: se falhar, o CSS usa uma fonte do sistema) -->
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Liga o arquivo de estilos -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Projeto Fênix</h1>
+    <p class="sub">Das cinzas, mais fortes. Suas metas, salvas aqui.</p>
+
+    <!-- aria-live="polite": leitores de tela avisam quando este texto muda -->
+    <p class="today" id="today" aria-live="polite"></p>
+
+    <!-- FORMULÁRIO PARA CRIAR METAS -->
+    <form id="f">
+      <div class="full">
+        <label for="t">Nome da meta</label>
+        <!-- required: o navegador impede enviar vazio. maxlength limita o tamanho -->
+        <input id="t" required maxlength="80" placeholder="Ex.: Treinar, ler 20 páginas, 5 km">
+      </div>
+
+      <div>
+        <label for="p">Pilar</label>
+        <select id="p">
+          <option>Corpo</option>
+          <option>Mente</option>
+          <option>Disciplina</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="k">Tipo</label>
+        <select id="k">
+          <!-- O "value" é o que o JavaScript lê; o texto é o que a pessoa vê -->
+          <option value="habit">Hábito diário (check todo dia)</option>
+          <option value="count">Meta com valor (ex.: 0 a 30)</option>
+        </select>
+      </div>
+
+      <!-- Estes dois campos só aparecem no tipo "Meta com valor".
+           O atributo "hidden" os esconde; o JavaScript o remove quando preciso -->
+      <div id="tw" hidden>
+        <label for="g">Valor alvo</label>
+        <input id="g" type="number" min="1" step="any" placeholder="30">
+      </div>
+      <div id="uw" hidden>
+        <label for="u">Unidade</label>
+        <input id="u" maxlength="12" placeholder="km, livros, dias">
+      </div>
+
+      <div class="full">
+        <button class="primary" type="submit">Criar meta</button>
+      </div>
+    </form>
+
+    <!-- Os botões de filtro e a lista são preenchidos pelo JavaScript (função render) -->
+    <div class="tabs" id="tabs" role="group" aria-label="Filtrar por pilar"></div>
+    <ul id="list"></ul>
+
+    <!-- BACKUP: exporta as metas para um arquivo .json e importa de volta -->
+    <div class="backup">
+      <button type="button" class="btn" id="exp">Exportar metas (backup)</button>
+      <button type="button" class="btn" id="imp">Importar metas</button>
+      <!-- Input de arquivo escondido: o botão "Importar" o aciona por código -->
+      <input type="file" id="arq" accept="application/json,.json" hidden>
+    </div>
+
+    <p class="note" id="note" aria-live="polite"></p>
+  </main>
+
+  <!-- O script vem por último para que os elementos acima já existam quando ele rodar -->
+  <script src="script.js"></script>
+</body>
+</html>

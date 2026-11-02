@@ -1,0 +1,176 @@
+/* =========================================================
+   1) VARIÁVEIS DE COR (custom properties)
+   Definimos as cores uma vez no :root e reutilizamos com var(--nome).
+   Para mudar o visual do site inteiro, basta editar aqui.
+   ========================================================= */
+:root {
+  --bg: #EEEBE6;        /* fundo da página */
+  --surface: #F8F6F2;   /* fundo de formulário e botões */
+  --ink: #2A2420;       /* cor do texto */
+  --mute: #6F645B;      /* texto secundário */
+  --line: #D6CFC6;      /* bordas e divisórias */
+  --ember: #A8231B;     /* cor principal (brasa) */
+  --gold: #A8700F;      /* cor de destaque (dourado) */
+  --on-ember: #fff;     /* texto sobre fundos coloridos */
+  color-scheme: light;
+}
+
+/* MODO ESCURO: se o aparelho estiver no tema escuro,
+   trocamos só os valores das variáveis. O resto do CSS não muda. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1B1716;
+    --surface: #252120;
+    --ink: #F1EBE4;
+    --mute: #A39990;
+    --line: #3A3330;
+    --ember: #F0624D;
+    --gold: #E0A83A;
+    --on-ember: #1B1716;
+    color-scheme: dark;
+  }
+}
+
+/* =========================================================
+   2) BASE
+   ========================================================= */
+* { box-sizing: border-box; } /* padding e borda entram na largura total do elemento */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  /* Lista de fontes: se a primeira não carregar, usa a próxima */
+  font: 400 16px/1.5 "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main {
+  max-width: 720px;   /* largura máxima de leitura */
+  margin: 0 auto;     /* centraliza na tela */
+  padding: 40px 20px 64px;
+}
+
+h1 {
+  /* clamp(mínimo, ideal, máximo): o título cresce com a tela, mas dentro de limites */
+  font-size: clamp(40px, 9vw, 68px);
+  line-height: 1;
+  margin: 0 0 6px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--ember);
+}
+.sub   { color: var(--mute); margin: 0 0 28px; }
+.today { font-size: 20px; font-weight: 600; margin: 0 0 24px; }
+
+/* =========================================================
+   3) FORMULÁRIO (usa CSS Grid)
+   ========================================================= */
+form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* duas colunas de tamanhos iguais */
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 28px;
+}
+form .full { grid-column: 1 / -1; } /* ocupa da primeira à última coluna (linha inteira) */
+
+label { display: block; font-size: 13px; color: var(--mute); margin-bottom: 4px; }
+
+/* Inputs e botões não herdam a fonte por padrão; "inherit" resolve */
+input, select, button { font: inherit; color: inherit; }
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+/* Contorno visível ao navegar pelo teclado (acessibilidade) */
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.primary {
+  background: var(--ember);
+  color: var(--on-ember);
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =========================================================
+   4) ABAS DE FILTRO (usa Flexbox)
+   ========================================================= */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.tab {
+  border: 1px solid var(--line);
+  background: none;
+  border-radius: 99px;       /* valor alto = formato de pílula */
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--mute);
+}
+/* Seletor de atributo: estiliza a aba que está "pressionada" (selecionada) */
+.tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* =========================================================
+   5) LISTA DE METAS
+   ========================================================= */
+ul { list-style: none; margin: 0; padding: 0; }
+
+li.goal {
+  display: grid;
+  grid-template-columns: 1fr auto;  /* texto ocupa o espaço livre; botões ficam à direita */
+  gap: 6px 14px;                    /* 6px entre linhas, 14px entre colunas */
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+li.goal.done h2 { text-decoration: line-through; color: var(--mute); } /* meta concluída */
+h2    { font-size: 19px; margin: 0; font-weight: 600; }
+.meta { font-size: 13px; color: var(--mute); }
+
+.act { display: flex; gap: 8px; align-items: center; }
+.btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.btn.on { background: var(--gold); color: var(--on-ember); border-color: var(--gold); font-weight: 600; } /* hábito feito hoje */
+.btn.x  { color: var(--mute); padding: 8px 10px; }
+
+/* BARRA DE PROGRESSO: uma trilha (.bar) com um preenchimento (i) dentro.
+   A largura do <i> é definida pelo JavaScript (ex.: width: 40%). */
+.bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ember); border-radius: 99px; transition: width .3s; }
+
+/* QUADRADINHOS dos últimos 7 dias */
+.dots { grid-column: 1 / -1; display: flex; gap: 6px; }
+.dots b { width: 22px; height: 22px; border-radius: 6px; background: var(--line); }
+.dots b.on { background: var(--gold); }  /* dia em que o hábito foi feito */
+
+.add { display: flex; gap: 6px; }
+.add input { width: 90px; }
+
+/* Área de backup (exportar/importar) */
+.backup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+.empty { padding: 28px 0; color: var(--mute); border-top: 1px solid var(--line); }
+.note  { margin-top: 32px; font-size: 13px; color: var(--mute); }
+
+/* =========================================================
+   6) RESPONSIVO E ACESSIBILIDADE
+   ========================================================= */
+/* Em telas pequenas, o formulário vira uma coluna só */
+@media (max-width: 480px) { form { grid-template-columns: 1fr; } }
+
+/* Respeita quem desativou animações no sistema */
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
