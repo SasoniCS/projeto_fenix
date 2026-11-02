@@ -40,11 +40,16 @@
         <input id="t" required maxlength="80" placeholder="Ex.: Treinar, ler 20 páginas, 5 km">
       </div>
 
+      <div class="full">
+        <label for="d">Descrição</label>
+        <textarea class=".desc" id="d" rows="3" maxlength="1000" placeholder="Descreva sua meta. (opcional)"></textarea>
+      </div>
+
       <div>
         <label for="p">Pilar</label>
         <select id="p">
           <option>Corpo</option>
-          <option>Mente</option>
+          <option>Mente</option>  
           <option>Disciplina</option>
         </select>
       </div>
@@ -70,7 +75,8 @@
       </div>
 
       <div class="full">
-        <button class="primary" type="submit">Criar meta</button>
+        <button class="primary" type="submit" id="btn-salvar">Criar meta</button>
+        <button class="btn" type="button" id="btn-cancelar" hidden>Cancelar</button>
       </div>
     </form>
 
