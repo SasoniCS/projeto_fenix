@@ -9,7 +9,7 @@
    IMPORTANTE: sempre que você mudar qualquer arquivo do app,
    troque a versão (fenix-v2, fenix-v3...). É assim que os aparelhos
    percebem que existe uma versão nova. */
-const CACHE = 'fenix-v1';
+const CACHE = 'fenix-v2';
 
 /* Arquivos que serão guardados (o "esqueleto" do app) */
 const ARQUIVOS = [

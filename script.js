@@ -6,6 +6,7 @@
 const KEY = 'fenix-metas-v1';   // nome da gaveta no localStorage
 let state = { goals: [] };      // lista de metas
 let filter = 'Todas';           // filtro de pilar selecionado
+let editandoId = null;          // id da meta em edição; null = modo "criando"
 
 /* Cada meta é um objeto. Exemplos:
    Hábito:  { id:'g1a2', title:'Treinar', pilar:'Corpo', kind:'habit', days:['2026-11-01'] }
@@ -46,6 +47,44 @@ function streak(g) {
 
 /* Uma meta com valor está concluída quando o atual alcança o alvo */
 function isDone(g) { return g.kind === 'count' ? (g.current || 0) >= g.target : false; }
+
+
+/* */
+function iniciarEdicao(g) {
+  editandoId = g.id;
+
+  // preenche o formulário com os dados atuais
+  $('t').value = g.title;
+  $('d').value = g.description || '';
+  $('p').value = g.pilar;
+  $('k').value = g.kind;
+  $('k').disabled = true;                     // Não permite trocar o tipo (Quebraria o histórico)
+  $('k').dispatchEvent(new Event('change'));  // Mostra os campos extras, se for meta com valor
+
+  if (g.kind === 'count') {
+    $('g').value = g.target;
+    $('u').value = g.unit || '';
+  }
+
+  $('btn-salvar').textContent = 'Salvar alterações';
+  $('btn-cancelar').hidden = false;
+  $('f').scrollIntoView({ behavior: 'smooth' });
+  $('t').focus();
+}
+
+
+function sairDaEdicao() {
+  editandoId = null;
+  $('f').reset();
+  $('tw').hidden = true;
+  $('uw').hidden = true;
+  $('g').required = false;
+  $('k').disabled = false;
+  $('btn-salvar').textContent = 'Criar meta';
+  $('btn-cancelar').hidden = true;
+}
+
+$('btn-cancelar').addEventListener('click', sairDaEdicao);
 
 /* =========================================================
    3) SALVAR
@@ -100,6 +139,7 @@ function render() {
 
     /* ---------- HÁBITO DIÁRIO ---------- */
     if (g.kind === 'habit') {
+      const desc = g.description || '';
       const feitoHoje = (g.days || []).includes(t);
       const seq = streak(g);
       // Últimos 7 dias, do mais antigo (6 dias atrás) ao mais novo (hoje)
@@ -110,12 +150,14 @@ function render() {
       return `<li class="goal" data-id="${g.id}">
         <div>
           <h2>${esc(g.title)}</h2>
+          <p>${esc(desc)}</p>
           <div class="meta">${g.pilar} · sequência: ${seq} ${seq === 1 ? 'dia' : 'dias'}</div>
         </div>
         <div class="act">
           <button class="btn ${feitoHoje ? 'on' : ''}" data-a="check" aria-pressed="${feitoHoje}">
             ${feitoHoje ? 'Feito hoje' : 'Marcar hoje'}
           </button>
+          <button class="btn x" data-a="edit" aria-label="Editar ${esc(g.title)}">Editar</button>
           <button class="btn x" data-a="del" aria-label="Excluir ${esc(g.title)}">Excluir</button>
         </div>
         <div class="dots" aria-label="Últimos 7 dias">${quadrados}</div>
@@ -123,15 +165,18 @@ function render() {
     }
 
     /* ---------- META COM VALOR ---------- */
+    const desc = g.description || '';
     const atual = g.current || 0;
     const pct = Math.min(100, Math.round(atual / g.target * 100)); // nunca passa de 100%
 
     return `<li class="goal ${isDone(g) ? 'done' : ''}" data-id="${g.id}">
       <div>
         <h2>${esc(g.title)}</h2>
+        <p>${esc(desc)}</p>
         <div class="meta">${g.pilar} · ${atual} de ${g.target} ${esc(g.unit || '')} (${pct}%)</div>
       </div>
       <div class="act">
+        <button class="btn x" data-a="edit" aria-label="Editar ${esc(g.title)}">Editar</button>
         <button class="btn x" data-a="del" aria-label="Excluir ${esc(g.title)}">Excluir</button>
       </div>
       <div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
@@ -162,10 +207,35 @@ $('k').addEventListener('change', () => {
 $('f').addEventListener('submit', e => {
   e.preventDefault();   // impede o navegador de recarregar a página
 
+  if (editandoId) {
+    const g = state.goals.find(x => x.id === editandoId);
+    if (g) {
+      const titulo = $('t').value.trim();
+      if (!titulo) return;
+
+      if (g.kind === 'count') {
+        const alvo = Number($('g').value);
+        if (!(alvo > 0)) return;
+
+        g.target = alvo;
+        g.unit = $('u').value.trim();
+      }
+
+      g.title = titulo;
+      g.description = $('d').value.trim();
+      g.pilar = $('p').value;
+      // id, days, current e created NÃO são tocados: o histórico fica preservado
+    }
+    sairDaEdicao();
+    save();
+    return;   // impede de seguir para o código de criar uma meta nova
+  }
+
   const kind = $('k').value;
   const meta = {
     id: 'g' + Date.now().toString(36),  // id único baseado no horário
     title: $('t').value.trim(),         // trim() remove espaços das pontas
+    description: $('d').value.trim(), 
     pilar: $('p').value,
     kind,
     created: today()
@@ -207,18 +277,23 @@ $('list').addEventListener('click', e => {
 
   const li = botao.closest('li');
   const g = state.goals.find(x => x.id === li.dataset.id);  // acha a meta pelo id
+
   if (!g) return;
 
   const acao = botao.dataset.a;
   const t = today();
 
-  if (acao === 'check') {
+  if (acao === 'edit') {
+    iniciarEdicao(g); 
+    return;
+  } else if (acao === 'check') {
     // Liga/desliga o dia de hoje
     g.days = g.days || [];
     const i = g.days.indexOf(t);
     if (i >= 0) g.days.splice(i, 1);   // já estava marcado: remove
     else g.days.push(t);               // não estava: adiciona
   } else if (acao === 'del') {
+    if (editandoId === g.id) sairDaEdicao();
     if (!confirm('Excluir a meta "' + g.title + '"?')) return;
     state.goals = state.goals.filter(x => x !== g);   // mantém todas, menos esta
   } else {

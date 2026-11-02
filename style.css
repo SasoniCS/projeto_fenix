@@ -77,11 +77,13 @@ form {
 }
 form .full { grid-column: 1 / -1; } /* ocupa da primeira à última coluna (linha inteira) */
 
+.desc { white-space: pre-wrap; }
+
 label { display: block; font-size: 13px; color: var(--mute); margin-bottom: 4px; }
 
 /* Inputs e botões não herdam a fonte por padrão; "inherit" resolve */
-input, select, button { font: inherit; color: inherit; }
-input, select {
+input, select, textarea, button { font: inherit; color: inherit; }
+input, select, textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
@@ -89,8 +91,10 @@ input, select {
   background: var(--bg);
 }
 
+textarea { resize: vertical; }
+
 /* Contorno visível ao navegar pelo teclado (acessibilidade) */
-input:focus-visible, select:focus-visible, button:focus-visible {
+input:focus-visible, select:focus-visible, button:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
 }
