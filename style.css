@@ -178,3 +178,19 @@ h2    { font-size: 19px; margin: 0; font-weight: 600; }
 
 /* Respeita quem desativou animações no sistema */
 @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+
+/* Celular: Texto em largura total, botões embaixo */
+@media (max-width: 600px) {
+  li.goal {
+    grid-template-columns: 1fr;
+  }
+
+  .act {
+    flex-wrap: wrap;
+  }
+}
+
+.btn { white-space: nowrap; }
+
+li.goal h2, .desc { overflow-wrap: anywhere; }
+li.goal.late .meta { color: var(--ember); font-weight: 600; }
