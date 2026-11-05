@@ -46,8 +46,24 @@ function streak(g) {
 }
 
 /* Uma meta com valor está concluída quando o atual alcança o alvo */
-function isDone(g) { return g.kind === 'count' ? (g.current || 0) >= g.target : false; }
+function isDone(g) { 
+  if (g.kind === 'count') return (g.current || 0) >= g.target;
+  if (g.kind === 'once') return !!g.done;
+  return false;
+}
 
+/* Formata 'AAAA-MM-DD' como 'DD/MM/AAAA' */
+const fmt = d => d ? d.split('-').reverse().join('/') : '';
+
+/* Dias entre hoje e uma data. Negativo = Já passou. */
+function diasAte(dataIso) {
+  const a = new Date(today() + 'T00:00:00');
+  const b = new Date(dataIso + 'T00:00:00');
+
+  return Math.round((b - a) / 864e5);   // 864e5 = milissegundos em um dia
+}
+
+const atrasada = g => g.kind === 'once' && !g.done && diasAte(g.dueDate) < 0;
 
 /* */
 function iniciarEdicao(g) {
@@ -66,6 +82,8 @@ function iniciarEdicao(g) {
     $('u').value = g.unit || '';
   }
 
+  if (g.kind === 'once') $('dt').value = g.dueDate;
+
   $('btn-salvar').textContent = 'Salvar alterações';
   $('btn-cancelar').hidden = false;
   $('f').scrollIntoView({ behavior: 'smooth' });
@@ -76,8 +94,7 @@ function iniciarEdicao(g) {
 function sairDaEdicao() {
   editandoId = null;
   $('f').reset();
-  $('tw').hidden = true;
-  $('uw').hidden = true;
+  ajustarCampos();   // o reset volta o select ao primeiro tipo; isto reajusta os campos
   $('g').required = false;
   $('k').disabled = false;
   $('btn-salvar').textContent = 'Criar meta';
@@ -85,6 +102,59 @@ function sairDaEdicao() {
 }
 
 $('btn-cancelar').addEventListener('click', sairDaEdicao);
+
+
+
+/* Confere se é um texto no formato AAAA-MM-DD e se vira uma data válida */
+const ehData = s =>
+  typeof s === 'string' &&
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  !isNaN(new Date(s + 'T00:00:00'));
+
+/* Devolve uma meta limpa, ou null se não for aproveitável */
+function limparMeta(g) {
+  if (!g || typeof g !== 'object') return null;
+  if (!['Corpo', 'Mente', 'Disciplina'].includes(g.pilar)) return null;
+
+  const title = String(g.title || '').trim().slice(0, 80);
+  const id = String(g.id || '').replace(/[^\w-]/g, '');   // só letras, números, _ e -
+  if (!title || !id) return null;
+
+  // Campos comuns a todos os tipos
+  const base = {
+    id,
+    title,
+    description: String(g.description || '').slice(0, 300),
+    pilar: g.pilar,
+    kind: g.kind,
+    created: ehData(g.created) ? g.created : today()
+  };
+
+  if (g.kind === 'habit') {
+    const days = Array.isArray(g.days) ? g.days.filter(ehData) : [];
+    return { ...base, days: [...new Set(days)] };   // Set remove datas repetidas
+  }
+
+  if (g.kind === 'count') {
+    const target = Number(g.target);
+    const current = Number(g.current);
+    if (!Number.isFinite(target) || target <= 0) return null;
+    return {
+      ...base,
+      target,
+      unit: String(g.unit || '').slice(0, 12),
+      current: Number.isFinite(current) ? Math.max(0, current) : 0
+    };
+  }
+
+  if (g.kind === 'once') {
+    if (!ehData(g.dueDate)) return null;
+    const done = g.done === true;
+    return { ...base, dueDate: g.dueDate, done, doneAt: done && ehData(g.doneAt) ? g.doneAt : null };
+  }
+
+  return null;   // tipo desconhecido: descarta
+}
 
 /* =========================================================
    3) SALVAR
@@ -136,10 +206,10 @@ function render() {
   /* Monta o HTML de cada meta. map() transforma cada meta em texto HTML;
      join('') junta tudo em um bloco só. */
   $('list').innerHTML = visiveis.map(g => {
+    const desc = g.description || '';
 
     /* ---------- HÁBITO DIÁRIO ---------- */
     if (g.kind === 'habit') {
-      const desc = g.description || '';
       const feitoHoje = (g.days || []).includes(t);
       const seq = streak(g);
       // Últimos 7 dias, do mais antigo (6 dias atrás) ao mais novo (hoje)
@@ -151,7 +221,7 @@ function render() {
         <div>
           <h2>${esc(g.title)}</h2>
           <p>${esc(desc)}</p>
-          <div class="meta">${g.pilar} · sequência: ${seq} ${seq === 1 ? 'dia' : 'dias'}</div>
+          <div class="meta">${g.pilar} · Sequência: ${seq} ${seq === 1 ? 'dia' : 'dias'}</div>
         </div>
         <div class="act">
           <button class="btn ${feitoHoje ? 'on' : ''}" data-a="check" aria-pressed="${feitoHoje}">
@@ -164,8 +234,32 @@ function render() {
       </li>`;
     }
 
+    if (g.kind === 'once') {
+      const dias = diasAte(g.dueDate);
+      let status;
+      if (g.done)           status = 'Concluída em ' + fmt(g.doneAt);
+      else if (dias < 0)    status = 'Atrasada há ' + (-dias) + (dias === -1 ? ' dia' : ' dias');
+      else if (dias === 0)  status = 'Vence hoje';
+      else                  status = 'Faltam ' + dias + (dias === 1 ? ' dia' : ' dias');
+    
+      return `<li class="goal ${g.done ? 'done' : ''} ${atrasada(g) ? 'late' : ''}" data-id="${g.id}">
+        <div>
+          <h2>${esc(g.title)}</h2>
+          <p> ${esc(desc)}</p>
+          <div class="meta">${g.pilar} · Prazo ${fmt(g.dueDate)} · ${status}</div>
+        </div>
+        <div class="act">
+          <button class="btn ${g.done ? 'on' : ''}" data-a="complete" aria-pressed="${g.done}">
+            ${g.done ? 'Concluída' : 'Concluir'}
+          </button>
+          <button class="btn x" data-a="edit">Editar</button>
+          <button class="btn x" data-a="del">Excluir</button>
+        </div>
+      </li>`;
+    }
+    
+    
     /* ---------- META COM VALOR ---------- */
-    const desc = g.description || '';
     const atual = g.current || 0;
     const pct = Math.min(100, Math.round(atual / g.target * 100)); // nunca passa de 100%
 
@@ -196,12 +290,15 @@ function render() {
    ========================================================= */
 
 /* Mostra ou esconde os campos "Valor alvo" e "Unidade" conforme o tipo */
-$('k').addEventListener('change', () => {
-  const ehValor = $('k').value === 'count';
-  $('tw').hidden = !ehValor;
-  $('uw').hidden = !ehValor;
-  $('g').required = ehValor;   // o alvo só é obrigatório no tipo "valor"
-});
+function ajustarCampos() {
+  const k = $('k').value;
+  $('tw').hidden = k !== 'count';
+  $('uw').hidden = k !== 'count';
+  $('dw').hidden = k !== 'once';
+  $('g').required = k === 'count';
+  $('dt').required = k === 'once';
+}
+$('k').addEventListener('change', ajustarCampos);
 
 /* CRIAR META: acontece quando o formulário é enviado */
 $('f').addEventListener('submit', e => {
@@ -221,9 +318,15 @@ $('f').addEventListener('submit', e => {
         g.unit = $('u').value.trim();
       }
 
+      if (g.kind === 'once') {
+        if (!$('dt').value) return;
+        g.dueDate = $('dt').value;
+      }
+
       g.title = titulo;
       g.description = $('d').value.trim();
       g.pilar = $('p').value;
+      if (filter !== 'Todas' && filter !== g.pilar) filter = g.pilar;
       // id, days, current e created NÃO são tocados: o histórico fica preservado
     }
     sairDaEdicao();
@@ -247,16 +350,21 @@ $('f').addEventListener('submit', e => {
     meta.unit = $('u').value.trim();
     meta.current = 0;
     if (!(meta.target > 0)) return;     // alvo precisa ser positivo
+  } else if (kind === 'once') {
+    meta.dueDate = $('dt').value;
+    if (!meta.dueDate) return;
+    meta.done = false;
+    meta.doneAt = null;
   } else {
     meta.days = [];                      // lista de datas em que foi feito
   }
 
   state.goals = [meta, ...(state.goals || [])];   // coloca a nova no topo
+  if (filter !== 'Todas' && filter !== meta.pilar) filter = meta.pilar;
 
   // Limpa o formulário e esconde os campos extras
   $('f').reset();
-  $('tw').hidden = true;
-  $('uw').hidden = true;
+  ajustarCampos();
   $('g').required = false;
   save();
 });
@@ -292,15 +400,20 @@ $('list').addEventListener('click', e => {
     const i = g.days.indexOf(t);
     if (i >= 0) g.days.splice(i, 1);   // já estava marcado: remove
     else g.days.push(t);               // não estava: adiciona
+  } else if (acao === 'complete') {
+    g.done = !g.done;                   // alterna
+    g.doneAt = g.done ? today() : null; // guarda quando concluiu; desfazer apaga
   } else if (acao === 'del') {
+    if (!confirm('Excluir a meta "' + g.title + '"?')) {return;};
     if (editandoId === g.id) sairDaEdicao();
-    if (!confirm('Excluir a meta "' + g.title + '"?')) return;
     state.goals = state.goals.filter(x => x !== g);   // mantém todas, menos esta
-  } else {
+  } else if (acao === 'add' || acao === 'sub') {
     // 'add' ou 'sub': soma ou subtrai o valor digitado
     const v = Number(li.querySelector('[data-in]').value);
     if (!v) return;
     g.current = Math.max(0, (g.current || 0) + (acao === 'add' ? v : -v)); // nunca abaixo de 0
+  } else {
+    return;
   }
   save();
 });
@@ -344,19 +457,20 @@ function importar(arquivo) {
 
       // VALIDAÇÃO: nunca confie cegamente em um arquivo de fora.
       // Mantemos só metas que tenham a forma esperada.
-      const validas = dados.goals.filter(g =>
-        g && typeof g.id === 'string' && typeof g.title === 'string' &&
-        ['Corpo', 'Mente', 'Disciplina'].includes(g.pilar) &&
-        (g.kind === 'habit' || (g.kind === 'count' && Number(g.target) > 0))
-      );
+      const validas = dados.goals.map(limparMeta).filter(Boolean);
+      const descartadas = dados.goals.length - validas.length;
 
       // Só adiciona metas cujo id ainda não existe
       const idsAtuais = new Set(state.goals.map(g => g.id));
-      const novas = validas.filter(g => !idsAtuais.has(g.id));
+      const novas = validas.filter(g => {
+        if (idsAtuais.has(g.id)) return false;
+        idsAtuais.add(g.id);
+        return true;
+      });
 
       state.goals = [...novas, ...state.goals];
       save();
-      $('note').textContent = novas.length + ' meta(s) importada(s).';
+      $('note').textContent = novas.length + ' meta(s) importada(s)' + (descartadas ? ' (' + descartadas + ' ignorada(s) por dados inválidos).' : '.');
     } catch (e) {
       $('note').textContent = 'Arquivo inválido. Use um backup exportado por este app.';
     }
@@ -394,5 +508,5 @@ try {
   if (salvo) state = JSON.parse(salvo);   // JSON.parse: de texto de volta para objeto
 } catch (e) { /* se der erro, começa vazio */ }
 
-if (!Array.isArray(state.goals)) state = { goals: [] };  // proteção contra dados estranhos
+if (!state || !Array.isArray(state.goals)) state = { goals: [] };  // proteção contra dados estranhos
 render();

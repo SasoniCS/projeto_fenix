@@ -60,6 +60,7 @@
           <!-- O "value" é o que o JavaScript lê; o texto é o que a pessoa vê -->
           <option value="habit">Hábito diário (check todo dia)</option>
           <option value="count">Meta com valor (ex.: 0 a 30)</option>
+          <option value="once">Meta única (com prazo)</option>
         </select>
       </div>
 
@@ -72,6 +73,10 @@
       <div id="uw" hidden>
         <label for="u">Unidade</label>
         <input id="u" maxlength="12" placeholder="km, livros, dias">
+      </div>
+      <div id="dw" hidden>
+        <label for="dt">Data de conclusão</label>
+        <input id="dt" type="date">
       </div>
 
       <div class="full">
